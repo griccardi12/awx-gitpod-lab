@@ -1,0 +1,28 @@
+image: gitpod/workspace-full
+
+tasks:
+  - name: Install Kubernetes & Tools
+    init: |
+      sudo apt-get update
+      sudo apt-get install -y socat conntrack
+
+      # Install k3d (light Kubernetes runtime)
+      curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      echo "Creating Kubernetes cluster..."
+      k3d cluster create awx --servers 1 --agents 1 --port "30080:30080@loadbalancer" --wait
+
+      # Check cluster status
+      kubectl get nodes
+
+      # Install AWX Operator
+      kubectl create namespace awx
+      kubectl apply -n awx -f https://raw.githubusercontent.com/ansible/awx-operator/devel/deploy/awx-operator.yaml
+
+      # Deploy AWX instance
+      kubectl apply -f awx.yml
+    command: |
+      watch kubectl get pods -n awx
+ports:
+  - port: 30080
+    onOpen: open-preview
